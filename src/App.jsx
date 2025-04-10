@@ -1,4 +1,5 @@
 import {useEffect, useState } from 'react'
+import { useDebounce } from 'react-use';
 import Search from './components/search';
 import MovieCard from './components/MovieCard';
 
@@ -19,12 +20,25 @@ const App = () =>{
   const [errorMessage, setErrorMessage] = useState([]);
   const [Movies, setMovies] = useState('');
   const [isloading, setIsLoading] = useState(false);
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
 
-  const fetchMovies = async () => {
+
+  // prevents the search term from making too many API request that cause overload in the server.
+  
+  useDebounce(
+    () => {
+      setDebouncedSearchTerm(searchTerm);
+    },
+    500,
+    [searchTerm]
+  );
+
+  const fetchMovies = async (query = '') => {
     setIsLoading(true);
     setErrorMessage('');
     try {
-      const endpoint = `${API_BASE_URL}/discover/movie?sort_by=popularity.desc`;
+      const endpoint = query ? `${API_BASE_URL}/search/movie?query=${encodeURIComponent(query)}` : /* this line makes sure that the search query gets displayed*/
+      `${API_BASE_URL}/discover/movie?sort_by=popularity.desc`;  /*this line makes sure movies are fetched from the movie database and displayed in a descending order*/
       const response = await fetch(endpoint, API_OPTIONS);
 
       if (!response.ok) {
@@ -46,8 +60,8 @@ const App = () =>{
     }
   }
   useEffect(()=>{
-   fetchMovies()
-  }, [])
+   fetchMovies(debouncedSearchTerm)
+  }, [debouncedSearchTerm])
   return(
     <main>
       <div className="pattern"/>
